@@ -1,4 +1,4 @@
-function [bit_stream_out, H_estimated] = sym2bit(V, M, use_pilot, pilot_config)
+function [bit_stream_out, H_estimated] = sym2bit(V, M, codec_mode, use_pilot, pilot_config)
     % sym2bit 实现带信道估计的相干解调
     %
     % 语法:
@@ -7,6 +7,7 @@ function [bit_stream_out, H_estimated] = sym2bit(V, M, use_pilot, pilot_config)
     % 输入:
     %   V             - (L_total x 1) 接收到的完整符号序列
     %   M             - (scalar) 每个符号的比特数 (1, 2, 或 3)
+    %   codec_mode    - (scalar) 编码模式 (0: BPSK/PAM4/8-QAM, 1: ROTATED_BPSK/QPSK/8-PSK)
     %   use_pilot     - (logical) 是否使用导频 (true/false)
     %   pilot_config  - (struct) 导频配置 (必须与发送端一致)
     %     .interval   - (scalar) 导频间隔
@@ -16,7 +17,7 @@ function [bit_stream_out, H_estimated] = sym2bit(V, M, use_pilot, pilot_config)
     %   bit_stream_out - (B x 1) 判决恢复的比特流
 
     %% -----  获取星座图和基本参数  -----
-    [C, B] = constellation_map(M); % C: 1x2^M, B: Mx2^M
+    [C, B] = constellation_map(M, codec_mode); % C: 1x2^M, B: Mx2^M
     L_total = length(V);
 
     if use_pilot

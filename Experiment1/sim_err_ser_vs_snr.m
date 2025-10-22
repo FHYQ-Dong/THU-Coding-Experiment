@@ -51,7 +51,7 @@ for i = 1:length(sigma_n_sq_vec)
     bit_stream_in_all{i} = bit_stream_in;
 
     % --- 1. 比特 -> 符号 (插入导频) ---
-    [U_total, is_data_mask] = bit2sym(bit_stream_in, M, use_pilot, pilot_config);
+    [U_total, is_data_mask] = bit2sym(bit_stream_in, M, 1, use_pilot, pilot_config);
 
     % --- 2. 通过序列信道 ---
     % H_true 是为了计算SNR，接收端不知道
@@ -59,7 +59,7 @@ for i = 1:length(sigma_n_sq_vec)
     H_true_all{i} = H_true;
 
     % --- 3. 符号 -> 比特 (带估计) ---
-    [bit_stream_out, H_estimated] = sym2bit(V, M, use_pilot, pilot_config);
+    [bit_stream_out, H_estimated] = sym2bit(V, M, 1, use_pilot, pilot_config);
     H_estimated_all{i} = H_estimated;
     bit_stream_out_all{i} = bit_stream_out;
 
@@ -71,7 +71,7 @@ for i = 1:length(sigma_n_sq_vec)
     
     % --- 5. 计算 SER (误符号率) ---
     U_data_in = U_total(is_data_mask);
-    [U_data_out, ~] = bit2sym(bit_stream_out, M, false); % 仅用 bit2sym 重建
+    [U_data_out, ~] = bit2sym(bit_stream_out, M, 1, false); % 仅用 bit2sym 重建
     num_sym_errors = sum(U_data_in ~= U_data_out);
     ser_vec(i) = num_sym_errors / L_data;
 
