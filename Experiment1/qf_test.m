@@ -8,7 +8,7 @@ quant_image = h261_quantization(test_image, quant_factor);
 
 
 %% ----------  VLC编码  ----------
-escape_count = 2;
+escape_count = 5;
 encoded_bits_single = encode_huffman(quant_image, 'single', escape_count);
 % encoded_bits_double = encode_huffman(quant_image, 'double', escape_count);
 disp(['单精度编码比特数: ', num2str(length(encoded_bits_single))]);
@@ -26,10 +26,9 @@ length(vlc_slice_start_code)
 K = 10;            % 每个 u_i 的重复次数
 M = 1;             % 比特/符号 (M=2, QPSK)
 codec_mode = 0;    % 编码模式
-% b = 0.7;
-b = 0;
+b = 0.7;
 rho = 0.996;
-sigma_n_sq = 0.001;
+sigma_n_sq = 0.01;
 opts.seed = 42;
 
 % 导频配置
@@ -43,8 +42,8 @@ vlc_bitstream = fgetl(vlc1_binfile);
 vlc_bitstream = vlc_bitstream - '0';
 fclose(vlc1_binfile);
 
-extra_length = mod(length(vlc_bitstream), M);
-encoded_bits = zeros(length(vlc_bitstream) + mod(length(vlc_bitstream), M), 1);
+extra_length = M - mod(length(vlc_bitstream), M);
+encoded_bits = zeros(length(vlc_bitstream) + extra_length, 1);
 encoded_bits(1:length(vlc_bitstream)) = vlc_bitstream;
 [U_data, is_data_mask] = bit2sym(encoded_bits, M, codec_mode, use_pilot, pilot_config);
 [V_data, H_true] = seqcplxchan(U_data, K, b, rho, sigma_n_sq, opts);
