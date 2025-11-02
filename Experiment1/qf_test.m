@@ -17,9 +17,8 @@ disp(['单精度编码比特数: ', num2str(length(encoded_bits_single))]);
 % VLC参数
 vlc_sliceOption = 1;
 vlc_slice_start_code = '000011110000111100001111';
-length(vlc_slice_start_code)
 [num_vlc1, code_vlc1] = encode_vlc1('huff_table1.txt', vlc_sliceOption, test_image, quant_image, vlc_slice_start_code); % VLC单符号编码
-% [num_vlc2_1, num_vlc2_2, code_vlc2, bitstream_vlc2] = encode_vlc2('huff_table2.txt', vlc_sliceOption, test_image, quant_image, vlc_slice_start_code); % VLC双符号编码
+% [num_vlc2_1, num_vlc2_2, code_vlc2] = encode_vlc2('huff_table2.txt', vlc_sliceOption, test_image, quant_image, vlc_slice_start_code); % VLC双符号编码
 
 %% ----------  信道  ----------
 % 信道参数
