@@ -5,8 +5,6 @@ test_image = imread('./lena_128_bw.bmp');
 %% ----------  量化  ----------
 quant_factor = 10;
 quant_image = h261_quantization(test_image, quant_factor);
-quant_image = test_image;
-
 
 
 %% ----------  VLC编码  ----------
@@ -94,9 +92,8 @@ rec_vlc1_image = decode_vlc1('chan1_bin.txt', num_vlc1, code_vlc1, vlc_sliceOpti
 
 
 %% ----------  反量化  ----------
-% rec_image = h261_dequantization(rec_vlc1_image, quant_factor);
+rec_image = h261_dequantization(rec_vlc1_image, quant_factor);
 % rec_image = h261_dequantization(rec_vlc2_image);
-rec_image = rec_vlc1_image;
 figure;
-imshow(rec_image);
+imshow(rec_image,[]);
 title('重构图像');

@@ -9,7 +9,6 @@ function procImage = h261_quantization(srcImage, quant_factor)
         49,64,78,87,103,121,120,101,72,92,95,98,112,100,103,99
     ]';
     JPEGQuantTable = double(round(JPEGQuantTableOri .* quant_factor ./ 10));
-    JPEGQuantTable = reshape(JPEGQuantTable, [8, 8]);
 
     [img_height, img_width] = size(srcImage);
     procImage = zeros(img_height, img_width);
@@ -17,10 +16,10 @@ function procImage = h261_quantization(srcImage, quant_factor)
     for i = 1:fix(img_height/8)
         for j = 1:fix(img_width/8)
             img_block8x8 = srcImage(8*(i-1)+1:8*(i-1)+8, 8*(j-1)+1:8*(j-1)+8);
-            img_block8x8 = dct2(double(img_block8x8));
-            img_block8x8 = round(img_block8x8 ./ JPEGQuantTable);
-            procImage(8*(i-1)+1:8*(i-1)+8, 8*(j-1)+1:8*(j-1)+8) = img_block8x8;
+            img_block64 = dct2D(img_block8x8);
+            img_block64 = round(img_block64 ./ JPEGQuantTable);
+            img_block8x8 = reshape(img_block64, [8,8]);
+            procImage(8*(i-1)+1:8*(i-1)+8, 8*(j-1)+1:8*(j-1)+8) = uint8(img_block8x8 + 128);
         end
     end
-    procImage = uint8(procImage);
 end
