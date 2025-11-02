@@ -230,7 +230,7 @@ if ~isempty(bin_file)
                             tt =  PSNR(srcImage,recImage);
                             figure('name', 'Rec Image', 'NumberTitle', 'off');
                             imshow(recImage,[]);
-                            printf("Two symbol decode:\tError4! Too many bits! \tPSNR:%f\n",tt);
+                            fprintf("Two symbol decode:\tError4! Too many bits! \tPSNR:%f\n",tt);
                             return;
                         else
                             complete = true;
