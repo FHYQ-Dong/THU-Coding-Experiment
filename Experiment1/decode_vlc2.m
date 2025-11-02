@@ -1,103 +1,310 @@
-clc; clear; close all;
+function recImage = decode_vlc2(twosymbol_bin_file, num_2_1, num_2_2, code_2, slice_heightOption, ...
+    srcImage,procImage, slice_start_code)
 
-test_image = imread('./lena_128_bw.bmp');
+bin_file = fopen(twosymbol_bin_file, 'r');
 
-%% ----------  量化  ----------
-quant_factor = 10;
-quant_image = h261_quantization(test_image, quant_factor);
+if ~isempty(bin_file)
+    data = fgetl(bin_file);   % read in all
+    
+    complete = false;
+    maxCodeLength = 0;
+    escapeLength = length(char(code_2(end))); % length of escape code
+    for i=1:length(code_2)
+        if length(char(code_2(i)))>maxCodeLength
+            maxCodeLength = length(char(code_2(i)));
+        end
+    end
+    
+    switch slice_heightOption   %slice related
+        case 0
+            slice_height = 1;
+        case 1
+            slice_height = 4;
+        case 2
+            slice_height = 8;
+        case 3
+            slice_height = 16;
+        case 4
+            slice_height = 32;
+        case 5
+            slice_height = 64;
+    end
+    
+    if slice_height == 1
+        slice_height = size(srcImage, 1);
+    end
+    
+    width = size(srcImage,2);
+    height = size(srcImage,1);
+    
+    slice_idx = 0;
+    disable = false;
+    current = 1;
+    slice_err = true;
+    done = false;
+    nowx = 1;   %%%%%!!!!!! 1
+    nowy = 1;
+    
+    recImage = zeros(height, width);   %initialize recImage
+    
+    while current <= length(data)
+        if length(data)-current < 23
+            header_temp = data(current:end);
+        else
+            header_temp = data(current:current+23);
+        end
+        %                 header_temp = data(current:current+23);
+        if isequal(header_temp,slice_start_code)
+            current = current+24;   %header
+            slice_idx = bin2dec(data(current:current+7));
+            current = current+8;    %slice number
+            nowx = 1;
+            nowy = 1;
+            done= true;
+            if slice_idx < ceil(height/slice_height)
+                slice_err = false;
+            else
+                slice_err = true;
+            end
+            fprintf("Two symbol decode:\tslice_idx:%d\n",slice_idx);
+        elseif ~slice_err
+            done = false;
+            disable = false;
+            for i = 1:maxCodeLength
+                if current + i-1 > length(data)
+                    diffImage = abs(double(procImage) - double(recImage));
+                    figure('name', 'Difference Image', 'NumberTitle', 'off');
+                    imshow(diffImage,[]);
+                    imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                    if ~isequal(procImage, recImage)
+                        fprintf("PSNR:\t difference between picture A and B.\n")
+                    end
+                    tt = PSNR(srcImage,recImage);
+                    figure('name', 'Rec Image', 'NumberTitle', 'off');
+                    imshow(recImage,[]);
+                    printf("Two symbol decode:\t Error1! No enough bits! \tPSNR:%f\n",tt);
+                    return;
+                end
+                tmp = data(current:current+i-1);
+                for j=1:length(num_2_1)
+                    if code_2(j)==tmp
+                        disable = false;
+                        for m_1=1:i-1
+                            if length(data)-current-m_1 < 23
+                                header_temp = data(current+m_1:end);
+                            else
+                                header_temp = data(current+m_1:current+m_1+23);
+                            end
+                            %                                     header_temp = data(current+m_1:current+m_1+24);
+                            if isequal(header_temp,slice_start_code)
+                                disable = true;
+                                current = current + m_1+24;
+                                slice_idx = bin2dec(data(current:current+7));
+                                current = current+8;
+                                nowx = 1;
+                                nowy = 1;
+                                done = true;
+                                break;
+                            end
+                        end
+                        
+                        if ~disable
+                            recImage(slice_idx*slice_height+nowy, nowx) = num_2_1(j);
+                            recImage(slice_idx*slice_height+nowy, nowx+1) = num_2_2(j);
+                            current = current+i;
+                            done = true;
+                            break;
+                        end
+                    end
+                end
+                if done
+                    break;
+                end
+            end
+            
+            if ~disable && ~done
+                if(current+escapeLength-1)>length(data)
+                    diffImage = abs(double(procImage) - double(recImage));
+                    figure('name', 'Difference Image', 'NumberTitle', 'off');
+                    imshow(diffImage,[]);
+                    imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                    if ~isequal(procImage, recImage)
+                        fprintf("PSNR:\t difference between picture A and B.\n")
+                    end
+                    tt = PSNR(srcImage,recImage);
+                    
+                    figure('name', 'Rec Image', 'NumberTitle', 'off');
+                    imshow(recImage,[]);
+                    printf("Two symbol decode:\tError2! No enough bits! \tPSNR:%f\n",tt);
+                    return;
+                    
+                end
+                
+                tmp = data(current:current+escapeLength-1);
+                if tmp == code_2(end)
+                    for m_escapecode = 1:escapeLength-1
+                        if length(data)-current-m_escapecode < 23
+                            header_temp = data(current+m_escapecode:end);
+                        else
+                            header_temp = data(current+m_escapecode:current+m_escapecode+23);
+                        end
+                        %                                 header_tmp = data(current+m_escapecode:current+m_escapecode+23);
+                        if isequal(header_temp,slice_start_code)
+                            disable = true;
+                            current = current+m_escapecode+24;
+                            slice_idx = bin2dec(data(current:current+7));
+                            current = current+8;
+                            nowx = 1;
+                            nowy = 1;
+                            done = true;
+                            break;
+                        end
+                    end
+                    
+                    if ~disable
+                        current = current+escapeLength;
+                        if (current+15) > length(data)
+                            diffImage = abs(double(procImage) - double(recImage));
+                            figure('name', 'Difference Image', 'NumberTitle', 'off');
+                            imshow(diffImage,[]);
+                            imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                            
+                            if ~isequal(procImage, recImage)
+                                fprintf("PSNR:\t difference between picture A and B.\n")
+                            end
+                            tt = PSNR(srcImage,recImage);
+                            figure('name', 'Rec Image', 'NumberTitle', 'off');
+                            imshow(recImage,[]);
+                            printf("Two symbol decode:\tError3! No enough bits! \tPSNR:%f\n",tt);
+                            return;
+                            
+                        end
+                        
+                        for m_header=1:15
+                            if length(data)-current-m_header < 23
+                                header_temp = data(current+m_header:end);
+                            else
+                                header_temp = data(current+m_header:current+m_header+23);
+                            end
+                            %                                     header_temp = data(current+m_header:current+m_header+24);
+                            if isequal(header_temp,slice_start_code)
+                                disable = true;
+                                current = current+m_header+24;
+                                slice_idx = bin2dec(data(current:current+7));
+                                current = current+8;
+                                nowx = 1;
+                                nowy = 1;
+                                done = true;
+                                break;
+                            end
+                        end
+                        
+                        if ~disable
+                            tmp = data(current : current+7);
+                            current = current+8;
+                            para = bin2dec(tmp);
+                            recImage(slice_idx*slice_height+nowy, nowx) = para;
+                            tmp = data(current: current+7);
+                            current = current+8;
+                            para = bin2dec(tmp);
+                            recImage(slice_idx*slice_height+nowy, nowx+1) = para;
+                            done = true;
+                        end
+                    end
+                else
+                    slice_err = true;
+                end
+            end
+            
+            if (~disable) && done && (~slice_err)
+                if nowx == width-1
+                    if (slice_idx*slice_height+nowy)==height
+                        if current <= length(data)
+                            diffImage = abs(double(procImage) - double(recImage));
+                            figure('name', 'Difference Image', 'NumberTitle', 'off');
+                            imshow(diffImage,[]);
+                            imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                            if ~isequal(procImage, recImage)
+                                fprintf("PSNR:\t difference between picture A and B.\n")
+                            end
+                            tt =  PSNR(srcImage,recImage);
+                            figure('name', 'Rec Image', 'NumberTitle', 'off');
+                            imshow(recImage,[]);
+                            fprintf("Two symbol decode:\tError4! Too many bits! \tPSNR:%f\n",tt);
+                            return;
+                        else
+                            complete = true;
+                        end
+                        %to avoid nowx, nowy out of boundary
+                    elseif nowy == slice_height
+                        slice_err = true;
+                    else
+                        nowy = nowy+1;
+                        nowx = 1;
+                    end
+                else
+                    nowx = nowx+2;
+                end
+            end
+        else
+            current = current+1;
+        end
+    end
+    
+    if (~complete&&(current==length(data)))&&(((slice_idx*slice_height+nowy)*width+nowx+2)<=height*width)
+        diffImage = abs(double(procImage) - double(recImage));
+        figure('name', 'Difference Image', 'NumberTitle', 'off');
+        imshow(diffImage,[]);
+        imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+        if ~isequal(procImage, recImage)
+            fprintf("PSNR:\t difference between picture A and B.\n")
+        end
+        tt =  PSNR(srcImage,recImage);
+        figure('name', 'Rec Image', 'NumberTitle', 'off');
+        imshow(recImage,[]);
+        printf("Two symbol decode:\tError5! No enough bits! \tPSNR:%f\n",tt);
+        return;
+    end
+    
+    figure('name', 'Rec Image', 'NumberTitle', 'off');
+    imshow(recImage,[]);
+    
+    if complete
+        diffImage = abs(double(procImage) - double(recImage));
+        figure('name', 'Difference Image', 'NumberTitle', 'off');
+        imshow(diffImage,[]);
+        imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+        if ~isequal(procImage, recImage)
+            fprintf("PSNR:\t difference between picture A and B.\n")
+        end
+        tt_1 = PSNR(srcImage,recImage);
+        tt_2 = PSNR(procImage,recImage);
+        
+        if tt_2 == inf
+            % calculate the cost of transform codebook
+            length_table = 0;
+            for table_idx = 1:length(num_2_1)
+                length_table = length_table+length(char(code_2(table_idx)));
+                length_table = length_table+length(dec2bin(num_2_1(table_idx)));
+                length_table = length_table+length(dec2bin(num_2_2(table_idx)));
+            end
+            length_table = length_table+length(char(code_2(end)));
+            fprintf("Two symbol decode:\tAll correct!!!\nTotal bits:%d\tPSNR:%f\n",(length(data)+length_table), tt_1);
+            return;
+        else
+            fprintf("Two symbol decode:\tReconstruction success but not match!\nPSNR:%f\n",tt_1);
+            return;
+        end
+    else
+        fprintf("Two symbol decode:\tReconstruction failed!\n");
+        return;
+    end
+    
+else
+    disp('Two symbol decode:\tCode table file open failed!');
+    return;
+end
 
+fclose(bin_file);
+end
 
-%% ----------  VLC编码  ----------
-escape_count = 2;
-% encoded_bits_single = encode_huffman(quant_image, 'single', escape_count);
-encoded_bits_double = encode_huffman(quant_image, 'double', escape_count);
-% disp(['单精度编码比特数: ', num2str(length(encoded_bits_single))]);
-disp(['双精度编码比特数: ', num2str(length(encoded_bits_double))]);
-
-% VLC参数
-vlc_sliceOption = 1;
-vlc_slice_start_code = '000011110000111100001111';
-length(vlc_slice_start_code)
-% [num_vlc1, code_vlc1] = encode_vlc1('huff_table1.txt', vlc_sliceOption, test_image, quant_image, vlc_slice_start_code); % VLC单符号编码
-[num_vlc2_1, num_vlc2_2, code_vlc2] = encode_vlc2('huff_table2.txt', vlc_sliceOption, test_image, quant_image, vlc_slice_start_code); % VLC双符号编码
-
-%% ----------  信道  ----------
-% 信道参数
-K = 10;            % 每个 u_i 的重复次数
-M = 1;             % 比特/符号
-codec_mode = 1;    % 编码模式
-b = 0.7;
-% b = 0;
-rho = 0.996;
-% rho = 0;
-sigma_n_sq = 0.01;
-opts.seed = 42;
-
-% 导频配置
-use_pilot = true;
-pilot_config.interval = 3; % 1 导频, 2 数据
-pilot_config.symbol = 2 + 0j;
-
-% --- 生成比特流 ---
-% vlc1_binfile = fopen('vlc1_bin.txt', 'r');
-% vlc_bitstream = fgetl(vlc1_binfile);
-vlc2_binfile = fopen('vlc2_bin.txt', 'r');
-vlc_bitstream = fgetl(vlc2_binfile);
-vlc_bitstream = vlc_bitstream - '0';
-% fclose(vlc1_binfile);
-fclose(vlc2_binfile);
-
-extra_length = M - mod(length(vlc_bitstream), M);
-encoded_bits = zeros(length(vlc_bitstream) + extra_length, 1);
-encoded_bits(1:length(vlc_bitstream)) = vlc_bitstream;
-[U_data, is_data_mask] = bit2sym(encoded_bits, M, codec_mode, use_pilot, pilot_config);
-[V_data, H_true] = seqcplxchan(U_data, K, b, rho, sigma_n_sq, opts);
-[C, B] = constellation_map(M, codec_mode); % 获取星座图
-
-figure;
-scatter(real(V_data), imag(V_data), 'b.', 'DisplayName', 'Received Symbols');
-hold on;
-
-B_text = num2str(B');
-plot(real(C), imag(C), 'ro', 'DisplayName', 'Constellation', 'MarkerFaceColor', 'r', 'MarkerSize',10);
-text(real(C)-0.05*M, imag(C)+0.2, B_text, 'VerticalAlignment','bottom','HorizontalAlignment','right','FontSize',12);
-plot(real(pilot_config.symbol), imag(pilot_config.symbol), 'g^', 'MarkerSize', 10, 'MarkerFaceColor', 'g', 'DisplayName', 'Pilot Symbol');
-legend show;
-axis equal;
-title('符号星座图与接收符号');
-hold off;
-
-[bit_stream_out, H_estimated] = sym2bit(V_data, M, codec_mode, use_pilot, pilot_config);
-U_error = bit2sym(bit_stream_out, M, codec_mode, false, struct());
-U_error = (U_data(is_data_mask) ~= U_error);
-
-    % --- 7. 计算真实的信噪比 (用于绘图) ---
-    S_seq_power = mean(abs(H_true .* U_data).^2);
-    N_eff = V_data - (H_true .* U_data);
-    N_seq_power = mean(abs(N_eff).^2);
-    SNR = 10*log10(S_seq_power / N_seq_power);
-
-num_bit_errors = sum(encoded_bits ~= bit_stream_out);
-disp(['符号错误数: ', num2str(sum(U_error))]);
-disp(['符号错误率: ', num2str(10*log10(sum(U_error) / length(U_error))), ' dB']);
-disp(['比特错误数: ', num2str(num_bit_errors)]);
-disp(['比特错误率: ', num2str(10*log10(num_bit_errors / length(encoded_bits))), ' dB']);
-disp(['真实信噪比: ', num2str(SNR), ' dB']);
-
-% 写入文件
-% chan_binfile = fopen('chan1_bin.txt', 'wb');
-chan_binfile = fopen('chan2_bin.txt', 'wb');
-fwrite(chan_binfile, bit_stream_out + '0', 'uint8');
-fclose(chan_binfile);
-
-%% ----------  VLC解码  ----------
-% rec_vlc1_image = decode_vlc1('chan1_bin.txt', num_vlc1, code_vlc1, vlc_sliceOption, test_image, quant_image, vlc_slice_start_code);
-rec_vlc2_image = decode_vlc2('chan2_bin.txt', num_vlc2_1, num_vlc2_2, code_vlc2, vlc_sliceOption, test_image, quant_image, vlc_slice_start_code);
-
-
-%% ----------  反量化  ----------
-% rec_image = h261_dequantization(rec_vlc1_image, quant_factor);
-rec_image = h261_dequantization(rec_vlc2_image, quant_factor);
-figure;
-imshow(rec_image,[]);
-title('重构图像');
