@@ -55,6 +55,19 @@ function stats = calculate_coding_stats(original_data, encoded_bits, codebook, s
             % 判断是否为逃逸符号
             if strcmp(escape_code, current_code)
                 escape_counts = escape_counts + 1;
+
+                % 跳过后续的原始数据比特
+                if strcmp(symbol_type, 'single')
+                    skip_bits = 8;
+                else
+                    skip_bits = 16;
+                end
+                idx = idx + skip_bits;
+                % 检查是否越界
+                if idx - 1 > encoded_length
+                    warning('逃逸码后原始数据不完整');
+                    break;
+                end
             end
             % 重置当前码，准备下一个符号
             current_code = '';
@@ -88,7 +101,7 @@ function stats = calculate_coding_stats(original_data, encoded_bits, codebook, s
     fprintf('  压缩比: %.4f\n', compression_ratio);
     fprintf('  编码效率: %.4f\n', coding_efficiency);
     fprintf('  编码类型: %s符号编码\n', symbol_type);
-    fprintf('  正常符号数量: %d 个符号\n', length(normal_codebook));
+    fprintf('  正常符号种类: %d 种符号\n', length(normal_codebook));
     fprintf('  逃逸码: %s\n', escape_entry.code);
     fprintf('  逃逸码出现次数: %d\n', escape_counts);
 end
