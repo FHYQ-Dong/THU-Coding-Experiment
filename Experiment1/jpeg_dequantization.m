@@ -1,4 +1,4 @@
-function recImage = h261_dequantization(procImage, quant_factor)
+function recImage = jpeg_dequantization(procImage, quant_factor)
     if quant_factor > 100 || quant_factor < 1
         error('No factor input[1-100]!');
     end

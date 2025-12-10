@@ -1,0 +1,33 @@
+\section{代码结构}
+\label{sec:code-structure}
+以下为压缩包中代码文件的结构说明（平台提供的文件的说明略去）：
+\begin{lstlisting}[language={bash}, numbers=none]
+    .
+    ├── bit2sym.m                 # 比特-符号映射
+    ├── calculate_coding_stats.m  # 计算编码统计信息（用于Huffman编解码）
+    ├── constellation_map.m       # 构建比特-符号星座图
+    ├── cplxchan.m                # 复采样信道实现
+    ├── dct2D.m
+    ├── decode_huffman.m          # Huffman解码（未使用）
+    ├── decode_vlc1.m             # 单符号VLC解码
+    ├── decode_vlc2.m             # 双符号VLC解码
+    ├── encode_huffman.m          # Huffman编码（用于生成码供VLC编解码）
+    ├── encode_vlc1.m             # 单符号VLC编码
+    ├── encode_vlc2.m             # 双符号VLC编码
+    ├── idct2D.m
+    ├── jpeg_dequantization.m     # JPEG反量化
+    ├── jpeg_quantization.m       # JPEG量化
+    ├── lena_128_bw.bmp
+    ├── PSNR.m
+    ├── qf_test.m                 # 联合调试主程序
+    ├── qf_test_log_double.txt    # 联合调试双符号Huffman编码结果日志
+    ├── qf_test_log_single.txt    # 联合调试单符号Huffman编码结果日志
+    ├── seqcplxchan.m             # 复电平序列信道实现
+    ├── sim_cplxchan.m            # 复电平信道仿真
+    ├── sim_err_ser_vs_snr.m      # 采用信道估计后复电平序列信道误码率仿真
+    ├── sim_seqcplxchan.m         # 复电平序列信道仿真
+    ├── sim_snr_compare.m         # 复电平序列信道和内核的复采样信道的信噪比比较仿真      
+    ├── sym2bit.m                 # 符号-比特反映射
+    └── utils                     # 辅助函数目录
+        └── getmax.py             # 从联合调试日志文件中获取最大PSNR
+\end{lstlisting}

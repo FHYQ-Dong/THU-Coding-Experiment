@@ -2,8 +2,8 @@ clc; clear; close all;
 
 % -----  参数  -----
 N = 100;          % 符号数量
-b = 0.8;          % 信道参数 b
-rho = 0.9;        % 信道参数 rho
+b = 0.7;          % 信道参数 b
+rho = 0.996;        % 信道参数 rho
 sigma_n_sq = 0.1; % 信道参数 sigma_n^2
 seed = 42;
 
@@ -30,8 +30,9 @@ ylabel('a_i')
 grid on;
 legend show;
 hold off;
+
+figure;
 % Y 的星座图 - 按输入符号分颜色
-subplot(2, 1, 2);
 colors = ['r', 'g', 'b', 'm'];
 markers = ['o', 's', '^', 'd'];
 labels = {'X=1+0i', 'X=-1+0i', 'X=0+1i', 'X=0-1i'};

@@ -1,0 +1,1 @@
+{"quant_factor": 70, "vlc_sliceOption": 1, "escape_count": 4, "M": 1, "psnr": 18.246784 dB, "snr": 24.770162 dB}

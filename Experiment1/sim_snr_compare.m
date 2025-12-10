@@ -8,7 +8,7 @@ clear; clc; close all;
 % -----  仿真参数  -----
 L_long     = 10000; % 序列信道仿真长度
 K          = 20;    % 重复次数
-b          = 0.8;
+b          = 0.7;
 sigma_n_sq = 0.1;
 
 seed     = 42;    % 固定种子以便 cplxchan 和 seqcplxchan 内部噪声序列对齐

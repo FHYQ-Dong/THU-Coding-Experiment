@@ -1,0 +1,218 @@
+\documentclass[utf8]{article}
+
+\input{chants.tex}
+
+
+% 标题信息
+%----------------------------------------------------------------
+\title{\textbf{实验一~~信道编码}}
+\author{FHYQ-Dong}
+\date{\zhtoday}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\section{联合调试}
+\subsection{模块划分}
+整体工作流中按顺序包含以下模块：
+\begin{enumerate}
+    \item 原始图像：\lstinline|lena_128_bw.bmp|；
+    \item 量化：采用经单独调试后效果最好的JPEG量化；
+    \item 熵编码：生成单、双符号的Huffman码本并进行基于条带的编码；
+    \item 比特-电平映射：采用ROTATED\_BPSK, QPSK, 8PSK分别进行1, 2, 3比特/符号的映射；
+    \item 符号处理：采用在数据符号中插入导频的方式进行信道估计；
+    \item 信道：经过复电平序列信道传输；
+    \item 符号处理：通过导频进行信道估计，并进行ML判决；
+    \item 比特-电平反映射：进行ROTATED\_BPSK, QPSK, 8PSK的反映射；
+    \item 熵解码：根据对应码本进行基于条带的解码；
+    \item 反量化：JPEG反量化；
+    \item 重构图像.
+\end{enumerate}
+
+\subsection{调试过程}
+实验中将信源编解码部分和信道部分分别进行调试，主要针对场景三和条件三，噪声方差 $\sigma_n^2 = 0.01$，信道调试结果为 $N = 2, x_p = 2 + 0\text{j}$. 具体含义和原因见第 \ref{sec:channel-processing} 节.
+
+在联合调试过程中，扫描参数按如下设置：
+\begin{itemize}
+    \item 单、双符号Huffman编码；
+    \item JPEG量化因子：$[5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]$；
+    \item VLC 条带选项：$[0, 1, 2, 3, 4]$；
+    \item 比特/符号：$[1, 2, 3]$；
+    \item Huffman编码逃逸码阈值：$[1, 2, 3, 4, 5]$.
+\end{itemize}
+扫描上述参数发现信道中真实的信噪比几乎不变，于是选择重建图像PSNR最高的参数组合作为最终联合调试结果：双符号Huffman编码、量化因子：70、VLC条带选项：1、Huffman编码逃逸码阈值：4、比特/符号：1. 最终重构图像如图 \ref{fig:reconstructed-image} 所示，重构图像PSNR为18.246784 dB, 信道传输的信噪比为24.770162 dB. 人眼观察，图像虽有部分失真，但都局限在小区域内. 在较远处观察与原图差别不大. 具体的参数扫描结果见压缩包中文件（代码结构见附录 \ref{app:code-structure}）.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/recon.png}
+    \caption{重构图像}
+    \label{fig:reconstructed-image}
+\end{figure}
+
+\section{信道处理}
+\label{sec:channel-processing}
+本人主要负责信道处理模块的设计与实现. 
+主要对场景三：$b = 0.7, \rho = 0.996$ 进行仿真. 其他场景可看作场景三的简化：
+\begin{enumerate}
+    \item 场景一：$b = 0$，信道变为 $y_i = x_i + n_i$，即AWGN信道，取消信道估计即可；
+    \item 场景二：$b = \rho = 1$，信道变为 $y_i = a_i x_i + n_i$，但信道增益 $a_i$ 恒定不变，仅需在一次通信开始时进行信道估计即可.
+\end{enumerate}
+主要针对条件三：收发双方均不知道 $\beta_i$ 进行仿真. 其他条件：
+\begin{enumerate}
+    \item 条件一：收发双方在完整一次通信过程之前，已提前知道所有的 $\beta_i$：发送方根据信道增益调整发送符号或接收方根据信道增益调整判决电平均可；
+    \item 条件二：收方提前知道所有的 $\beta_i$，而发方完全不知道：接收方根据信道增益调整判决电平即可，发送方无需调整发送符号.
+\end{enumerate}
+
+\subsection{比特-电平映射}
+本部分由林天皓同学设计，对1, 2, 3比特/符号分别采用ROTATED\_BPSK, QPSK, 8PSK进行映射，相应的星座图如图 \ref{fig:bit-symbol-constellation} 所示. 
+\begin{figure}[H]
+    \centering
+    \subfigure[ROTATED\_BPSK]{
+        \includegraphics[width=0.3\textwidth]{images/rotated-bpsk.png}
+    }\quad
+    \subfigure[QPSK]{
+        \includegraphics[width=0.3\textwidth]{images/qpsk.png}
+    }\quad
+    \subfigure[8PSK]{
+        \includegraphics[width=0.3\textwidth]{images/8psk.png}
+    }
+    \caption{比特-电平映射星座图}
+    \label{fig:bit-symbol-constellation}
+\end{figure}
+
+
+\subsection{复采样信道}
+复采样信道的输入输出关系为：
+\begin{equation}
+    y_i = a_i x_i + n_i
+\end{equation}
+其中 $a_i = \sqrt{1 - b^2} + b \beta_i, ~b \in [0, 1], ~\beta_i = \rho \beta_{i-1} + \sqrt{1 - \rho^2} z_i$，$z_i$ 和 $\beta_1$ 的实部和虚部独立，且服从零均值、方差为0.5的高斯分布. 所有 $n_i$ 的实部和虚部独立，且服从零均值、方差为 $\sigma_n^2/2$ 的高斯分布.
+
+取 $b = 0.7, \rho = 0.996, \sigma_n^2 = 0.1$，并取输入为 $\{1+0\text{j}, -1+0\text{j}, 0+1\text{j}, 0-1\text{j}\}$，得到信道输出星座图如图 \ref{fig:cplx-constellation} 所示. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/cplx-constellation.png}
+    \caption{复采样信道输出星座图}
+    \label{fig:cplx-constellation}
+\end{figure}
+
+\subsection{复电平序列信道}
+连续使用复采样信道，抽象成复电平序列信道. 具体关系如图 \ref{fig:cplx-seq-channel} 所示. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/seqcplx_cplx.png}
+    \caption{复电平序列信道示意图}
+    \label{fig:cplx-seq-channel}
+\end{figure}
+将复电平序列信道抽象为：
+\begin{equation}
+    y_i = h_i x_i + n_{eff,i}
+\end{equation}
+其中，$h_i = \frac{1}{K}\sum_{j=1}^K a_{ij}$，$n_{eff,i} = \frac{1}{\sqrt{K}}\sum_{j=1}^K n_{ij}$.
+分析复电平序列信道与内核的复采样信道的信噪比得：
+\begin{equation}
+\begin{aligned}
+    SNR_\text{core} &= \frac{(1 - 0.5b^2) P_x}{\sigma_n^2/2}, \quad SNR_\text{seq} = \frac{\mathbb{E}\qty[\abs{h_i}^2]}{\sigma_n^2/2} P_x \\
+    G &\triangleq \frac{SNR_\text{seq}}{SNR_\text{core}} = K \frac{\mathbb{E}\qty[\abs{h_i}^2]}{\mathbb{E}\qty[\abs{a_i}^2]} = \begin{cases}
+        K, & \rho \to 1 \\ 
+        \frac{K(1 - b^2) + 0.5b^2}{1 - 0.5b^2}, & \rho \to 0
+    \end{cases}
+\end{aligned}
+\end{equation}
+在 $K = 20, b = 0.7$ 下，分别取 $\rho = 0.999$ 和 $\rho = 0.001$，仿真增益与理论增益如表 \ref{tab:snr-gain} 所示. 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cccc}
+        \toprule
+        $\rho$ & 理论增益 $G$ & 仿真增益 $\hat{G}$ & 误差 \\ 
+        \midrule
+        0.999 & 19.9564 & 20.0387 & 0.0823 \\
+        0.001 & 13.8369 & 13.8940 & 0.0571 \\ 
+        \bottomrule
+    \end{tabular}
+    \caption{复电平序列信道信噪比增益}
+    \label{tab:snr-gain}
+\end{table}
+仿真值与理论值高度吻合，验证了复电平序列信道的信噪比增益分析.
+
+\subsection{信道估计与ML判决}
+在复电平序列信道上，在数据符号中插入导频符号进行信道估计. 设每隔 $N$ 个数据符号插入一个导频符号，导频符号已知且设为 $x_p$. 则第 $i$ 个导频对应的信道增益估计为：
+\begin{equation}
+    h_{est,i} = \frac{y_{p,i}}{x_p}
+\end{equation}
+其中 $y_{p,i}$ 为第 $i$ 个导频符号对应的接收符号. 对于两个导频符号之间的 $N-1$ 个数据符号，采用线性插值进行信道增益估计. 接受方对原始接收符号乘以对应的信道增益估计值，然后进行ML判决.
+显然，$\abs{x_p}$ 越大，信道估计越准确，但会占用更多的功率资源. 本次仿真中采用 $x_p = 2 + 0\text{j}$.
+在 $b = 0.7, \rho = 0.996, \sigma_n^2 = 0.01, x_p = 2 + 0\text{j}$ 情况下对 $N$ 取不同值进行仿真，得到误符号率与 $N$ 的关系如表 \ref{tab:psk-ber-vs-pilot-interval} 所示（仿真5000个符号）. 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ccccccc}
+        \toprule
+        $N$ & 1 & 2 & 3 & 4 & 5 & 6 \\ 
+        \midrule
+        误符号率 & 0.0054 & 0.005 & 0.007 & 0.0094 & 0.0082 & 0.0112 \\
+        \bottomrule
+    \end{tabular}
+    \caption{不同导频间隔下的误符号率}
+    \label{tab:psk-ber-vs-pilot-interval}
+\end{table}
+取最优的导频间隔 $N = 2$ 进行联合调试.
+在 $b = 0.7, \rho = 0.996, \sigma_n^2 = 0.01, N = 2, x_p = 2 + 0\text{j}$ 情况下，仿真 $h_{est}$ 与真实 $h$ 的实部和虚部如图 \ref{fig:channel-estimation} 所示. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/channel-estimation.png}
+    \caption{信道估计图}
+    \label{fig:channel-estimation}
+\end{figure}
+从图中可以看出，信道估计值与真实信道增益符合较好，验证了信道估计方法的有效性.
+
+\subsection{比特电平映射与信道估计联合仿真}
+在 $b = 0.7, \rho = 0.996, \sigma_n^2 = 0.01, N = 2, x_p = 2 + 0\text{j}$ 情况下，对1，2，3比特/符号分别进行联合仿真，得到误比特率如表 \ref{tab:ber-vs-bits-per-symbol} 所示（仿真5000个符号）. 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cccc}
+        \toprule
+        比特/符号 & 1 & 2 & 3 \\ 
+        \midrule
+        误比特率 & 0.0012 & 0.0033 & 0.0096 \\
+        \bottomrule
+    \end{tabular}
+    \caption{不同比特/符号下的误比特率}
+    \label{tab:ber-vs-bits-per-symbol}
+\end{table}
+在 $b = 0.7, \rho = 0.996, N = 2, x_p = 2 + 0\text{j}$ 情况下，对1，2，3比特/符号分别进行联合仿真，得到误符号率、误比特率与信噪比关系如图 \ref{fig:sber-vs-snr} 所示，比特错误图案如图 \ref{fig:ber-vs-noise-variance} 所示. 
+\begin{figure}[ht]
+    \centering
+    \subfigure[1比特/符号]{
+        \includegraphics[width=0.3\textwidth]{images/bpsk-snr.png}
+    }\quad
+    \subfigure[2比特/符号]{
+        \includegraphics[width=0.3\textwidth]{images/qpsk-snr.png}
+    }\quad
+    \subfigure[3比特/符号]{
+        \includegraphics[width=0.3\textwidth]{images/8psk-snr.png}
+    }
+    \caption{不同映射方式下的误符号率与误比特率随信噪比变化图}
+    \label{fig:sber-vs-snr}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \subfigure[1比特/符号]{
+        \includegraphics[width=0.65\textwidth]{images/bpsk-error.png}
+    }\\
+    \subfigure[2比特/符号]{
+        \includegraphics[width=0.65\textwidth]{images/qpsk-error.png}
+    }\\
+    \subfigure[3比特/符号]{
+        \includegraphics[width=0.65\textwidth]{images/8psk-error.png}
+    }
+    \caption{不同映射方式下的错误图案}
+    \label{fig:ber-vs-noise-variance}
+\end{figure}
+
+
+\appendix
+\include{app.tex}
+
+\end{document}

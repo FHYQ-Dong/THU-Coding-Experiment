@@ -73,16 +73,16 @@ if ~isempty(bin_file)
             for i = 1:maxCodeLength
                 if current + i-1 > length(data)
                     diffImage = abs(double(procImage) - double(recImage));
-                    figure('name', 'Difference Image', 'NumberTitle', 'off');
-                    imshow(diffImage,[]);
-                    imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                    % figure('name', 'Difference Image', 'NumberTitle', 'off');
+                    % imshow(diffImage,[]);
+                    % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
                     if ~isequal(procImage, recImage)
                         fprintf("PSNR:\t difference between picture A and B.\n")
                     end
                     tt = PSNR(srcImage,recImage);
-                    figure('name', 'Rec Image', 'NumberTitle', 'off');
-                    imshow(recImage,[]);
-                    printf("Two symbol decode:\t Error1! No enough bits! \tPSNR:%f\n",tt);
+                    % figure('name', 'Rec Image', 'NumberTitle', 'off');
+                    % imshow(recImage,[]);
+                    fprintf("Two symbol decode:\t Error1! No enough bits! \tPSNR:%f\n",tt);
                     return;
                 end
                 tmp = data(current:current+i-1);
@@ -125,16 +125,16 @@ if ~isempty(bin_file)
             if ~disable && ~done
                 if(current+escapeLength-1)>length(data)
                     diffImage = abs(double(procImage) - double(recImage));
-                    figure('name', 'Difference Image', 'NumberTitle', 'off');
-                    imshow(diffImage,[]);
-                    imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                    % figure('name', 'Difference Image', 'NumberTitle', 'off');
+                    % imshow(diffImage,[]);
+                    % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
                     if ~isequal(procImage, recImage)
                         fprintf("PSNR:\t difference between picture A and B.\n")
                     end
                     tt = PSNR(srcImage,recImage);
                     
-                    figure('name', 'Rec Image', 'NumberTitle', 'off');
-                    imshow(recImage,[]);
+                    % figure('name', 'Rec Image', 'NumberTitle', 'off');
+                    % imshow(recImage,[]);
                     printf("Two symbol decode:\tError2! No enough bits! \tPSNR:%f\n",tt);
                     return;
                     
@@ -165,16 +165,16 @@ if ~isempty(bin_file)
                         current = current+escapeLength;
                         if (current+15) > length(data)
                             diffImage = abs(double(procImage) - double(recImage));
-                            figure('name', 'Difference Image', 'NumberTitle', 'off');
-                            imshow(diffImage,[]);
-                            imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                            % figure('name', 'Difference Image', 'NumberTitle', 'off');
+                            % imshow(diffImage,[]);
+                            % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
                             
                             if ~isequal(procImage, recImage)
                                 fprintf("PSNR:\t difference between picture A and B.\n")
                             end
                             tt = PSNR(srcImage,recImage);
-                            figure('name', 'Rec Image', 'NumberTitle', 'off');
-                            imshow(recImage,[]);
+                            % figure('name', 'Rec Image', 'NumberTitle', 'off');
+                            % imshow(recImage,[]);
                             printf("Two symbol decode:\tError3! No enough bits! \tPSNR:%f\n",tt);
                             return;
                             
@@ -221,15 +221,15 @@ if ~isempty(bin_file)
                     if (slice_idx*slice_height+nowy)==height
                         if current <= length(data)
                             diffImage = abs(double(procImage) - double(recImage));
-                            figure('name', 'Difference Image', 'NumberTitle', 'off');
-                            imshow(diffImage,[]);
-                            imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+                            % figure('name', 'Difference Image', 'NumberTitle', 'off');
+                            % imshow(diffImage,[]);
+                            % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
                             if ~isequal(procImage, recImage)
                                 fprintf("PSNR:\t difference between picture A and B.\n")
                             end
                             tt =  PSNR(srcImage,recImage);
-                            figure('name', 'Rec Image', 'NumberTitle', 'off');
-                            imshow(recImage,[]);
+                            % figure('name', 'Rec Image', 'NumberTitle', 'off');
+                            % imshow(recImage,[]);
                             fprintf("Two symbol decode:\tError4! Too many bits! \tPSNR:%f\n",tt);
                             return;
                         else
@@ -253,27 +253,27 @@ if ~isempty(bin_file)
     
     if (~complete&&(current==length(data)))&&(((slice_idx*slice_height+nowy)*width+nowx+2)<=height*width)
         diffImage = abs(double(procImage) - double(recImage));
-        figure('name', 'Difference Image', 'NumberTitle', 'off');
-        imshow(diffImage,[]);
-        imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+        % figure('name', 'Difference Image', 'NumberTitle', 'off');
+        % imshow(diffImage,[]);
+        % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
         if ~isequal(procImage, recImage)
             fprintf("PSNR:\t difference between picture A and B.\n")
         end
         tt =  PSNR(srcImage,recImage);
-        figure('name', 'Rec Image', 'NumberTitle', 'off');
-        imshow(recImage,[]);
+        % figure('name', 'Rec Image', 'NumberTitle', 'off');
+        % imshow(recImage,[]);
         printf("Two symbol decode:\tError5! No enough bits! \tPSNR:%f\n",tt);
         return;
     end
     
-    figure('name', 'Rec Image', 'NumberTitle', 'off');
-    imshow(recImage,[]);
+    % figure('name', 'Rec Image', 'NumberTitle', 'off');
+    % imshow(recImage,[]);
     
     if complete
         diffImage = abs(double(procImage) - double(recImage));
-        figure('name', 'Difference Image', 'NumberTitle', 'off');
-        imshow(diffImage,[]);
-        imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
+        % figure('name', 'Difference Image', 'NumberTitle', 'off');
+        % imshow(diffImage,[]);
+        % imwrite(uint8(diffImage), 'diff_proc_rec.bmp');
         if ~isequal(procImage, recImage)
             fprintf("PSNR:\t difference between picture A and B.\n")
         end

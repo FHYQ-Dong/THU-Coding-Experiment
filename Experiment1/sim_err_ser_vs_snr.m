@@ -14,7 +14,7 @@ clear; clc; close all;
 %% 1. 仿真参数设置
 L_data = 5000;     % *数据* 符号序列长度
 K = 10;            % 每个 u_i 的重复次数
-M = 2;             % 比特/符号 (M=2, QPSK)
+M = 1;             % 比特/符号 (M=2, QPSK)
 B_total = L_data * M; % 总 *数据* 比特数
 
 % 导频配置
@@ -91,19 +91,17 @@ end
 
 %% 3. 绘制 SER/BER vs. SNR 曲线
 figure;
-subplot(1, 3, 1);
-semilogy(snr_db_vec, ser_vec, 'o-b', 'LineWidth', 2, 'DisplayName', 'SER (估计)');
+semilogy(snr_db_vec, ser_vec, 'o-b', 'LineWidth', 2, 'DisplayName', 'SER');
 hold on;
-semilogy(snr_db_vec, ber_vec, 's-r', 'LineWidth', 2, 'DisplayName', 'BER (估计)');
+semilogy(snr_db_vec, ber_vec, 's-r', 'LineWidth', 2, 'DisplayName', 'BER');
 title('SER/BER vs. SNR (带信道估计)');
-xlabel('测量的 SNR_{seq} (dB)');
+xlabel('SNR_{seq} (dB)');
 ylabel('错误率');
 grid on;
 ylim([1e-4, 1.0]);
 legend show;
-hold off;
 
-subplot(1, 3, 2);
+figure;
 hold on;
 if use_pilot
     H_estimated = H_estimated_all{1};
@@ -114,12 +112,12 @@ H_true = H_true_all{1};
 plot(1:20, real(H_true(1:20)), 'x--', 'DisplayName', 'Re(H_{真实})');
 plot(1:20, imag(H_true(1:20)), 'x--', 'DisplayName', 'Im(H_{真实})');
 grid on;
-title('第一次仿真中 H 的分布');
-xlabel('Re(H)'); ylabel('Im(H)');
+title('sigma_n^2 = 0.01 时 H 的分布');
+xlabel('比特索引（1:20）'); ylabel('H 值');
 legend show;
 hold off;
 
-subplot(1, 3, 3);
+figure;
 hold on;
 if use_pilot
     H_estimated = H_estimated_all{end};

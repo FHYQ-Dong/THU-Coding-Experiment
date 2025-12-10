@@ -1,4 +1,4 @@
-function procImage = h261_quantization(srcImage, quant_factor)
+function procImage = jpeg_quantization(srcImage, quant_factor)
     if quant_factor > 100 || quant_factor < 1
         error('No factor input[1-100]!');
     end

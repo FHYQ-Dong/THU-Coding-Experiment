@@ -11,3 +11,5 @@ chan2_bin.txt
 bin.txt
 test.txt
 diff_proc_rec.bmp
+build/
+fonts/

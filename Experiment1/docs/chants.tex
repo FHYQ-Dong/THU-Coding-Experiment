@@ -1,0 +1,67 @@
+\usepackage{ctex}
+\usepackage{amsmath}
+\usepackage{circuitikz}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{pdfpages}
+\usepackage{booktabs}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{multirow}
+\usepackage{inputenc}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{fontspec}
+\usepackage{threeparttable}
+\usepackage{physics}
+
+\newfontfamily\codefont[
+    Path = fonts/SarasaMonoSC/,
+    Extension = .ttf,
+    UprightFont = *-Regular,
+    BoldFont = *-Bold,
+    ItalicFont = *-Italic,
+    BoldItalicFont = *-BoldItalic,
+    Scale = MatchLowercase,
+]{SarasaMonoSC}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=black,
+    citecolor=black,
+}
+\lstdefinestyle{code}{ 
+    basicstyle   = \codefont,
+    breaklines   = true,
+    breakindent  = 0pt,
+    tabsize      = 4,
+    keywordstyle = \bfseries\color{NavyBlue},
+    emphstyle    = \bfseries\color{Rhodamine},
+    commentstyle = \itshape\color{PineGreen},
+    stringstyle  = \bfseries\color{Orange!90!black},
+    columns      = fixed,
+    numbers      = left,
+    numbersep    = 2em,
+    numberstyle  = \footnotesize,
+    frame        = single,
+    framesep     = 1em,
+    keepspaces   = true,
+    showspaces   = false,
+    showstringspaces = false,
+}
+\lstset{style=code}
+
+\geometry{a4paper, scale=0.8}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{实验一~~信道编码}
+\rhead{FHYQ-Dong}
+\cfoot{---~~\thepage~~---}
+\setlength{\columnsep}{20pt}
