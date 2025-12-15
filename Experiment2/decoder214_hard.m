@@ -1,6 +1,3 @@
-% (2,1,4)卷积码译码（硬判决）
-% 输入：待译码消息binstream，收尾方式tailing_mode（0不收尾，1收尾，2咬尾）
-% 输出：译码后的消息decoded_binstream
 function decoded_binstream = decoder214_hard(binstream, tailing_mode)
     REPEAT_TIMES = 5; % 咬尾时，重复译码次数
 
@@ -16,8 +13,10 @@ function decoded_binstream = decoder214_hard(binstream, tailing_mode)
         % DP
         for i = 1:L 
             if i == 1
-                pre_dh = zeros(1, 8);
-                pre_state(1, 2:8) = inf; % 初始状态的汉明距离
+                % 【修正1】必须初始化度量矩阵(pre_dh)，而非路径矩阵(pre_state)
+                % 初始状态必然是 State 1 (000)，距离为0；其余状态不可达，距离为inf
+                pre_dh = inf(1, 8);
+                pre_dh(1) = 0;
             else
                 pre_dh = min_dh(i-1, :); % 上一轮的汉明距离
             end
@@ -47,8 +46,14 @@ function decoded_binstream = decoder214_hard(binstream, tailing_mode)
                 end
             end
         end
-        % 选最小的
-        [~, min_state] = min(min_dh(end, :));
+        
+        % 【修正2】Mode 1 强制从归零状态回溯
+        if tailing_mode == 1
+            min_state = 1; % 强制为全零状态
+        else
+            [~, min_state] = min(min_dh(end, :));
+        end
+        
         % 从后往前扫，得到重建比特
         decoded_binstream = zeros(1, L);
         for i = L:-1:1
@@ -70,8 +75,8 @@ function decoded_binstream = decoder214_hard(binstream, tailing_mode)
         % DP
         for i = 1:L*REPEAT_TIMES
             if i == 1
+                % 【修正3】咬尾模式起始状态未知，全0代表等概，移除了错误的 pre_state 赋值
                 pre_dh = zeros(1, 8);
-                pre_state(1, 2:8) = inf; % 初始状态的汉明距离
             else
                 pre_dh = min_dh(i-1, :); % 上一轮的汉明距离
             end
@@ -104,18 +109,7 @@ end
 
 
 function [state, edge] = state_transform()
-    % 网格图
-    % id:     state:  out0:   ns0:    out1:   ns1:
-    % ----------------------------------------------
-    % 1       000     00      000     11      100
-    % 2       001     11      000     00      100
-    % 3       010     01      001     10      101
-    % 4       011     10      001     01      101
-    % 5       100     11      010     00      110
-    % 6       101     00      010     11      110
-    % 7       110     10      011     01      111
-    % 8       111     01      011     10      111
-    % ----------------------------------------------
+    % 网格图保持不变 (硬判决使用 0/1 是正确的)
     state = [ ...
         0 0 0 1, 1 1 0 2; ...
         0 1 0 3, 1 0 0 4; ...
@@ -125,23 +119,14 @@ function [state, edge] = state_transform()
         1 0 1 3, 0 1 1 4; ...
         0 0 1 5, 1 1 1 6; ...
         0 1 1 7, 1 0 1 8 ...
-    ]; % 这个状态可以从那些状态转移过来。行：当前状态，列：[out1, in1, ps1, out2, in2, ps2]
-    % 状态转移时的输入/输出
-    edge = zeros(8, 8); % (前序状态, 当前状态)
-    edge(1, 1) = 0;
-    edge(1, 5) = 1;
-    edge(2, 1) = 0;
-    edge(2, 5) = 1;
-    edge(3, 2) = 0;
-    edge(3, 6) = 1;
-    edge(4, 2) = 0;
-    edge(4, 6) = 1;
-    edge(5, 3) = 0;
-    edge(5, 7) = 1;
-    edge(6, 3) = 0;
-    edge(6, 7) = 1;
-    edge(7, 4) = 0;
-    edge(7, 8) = 1;
-    edge(8, 4) = 0;
-    edge(8, 8) = 1;
+    ]; 
+    edge = zeros(8, 8);
+    edge(1, 1) = 0; edge(1, 5) = 1;
+    edge(2, 1) = 0; edge(2, 5) = 1;
+    edge(3, 2) = 0; edge(3, 6) = 1;
+    edge(4, 2) = 0; edge(4, 6) = 1;
+    edge(5, 3) = 0; edge(5, 7) = 1;
+    edge(6, 3) = 0; edge(6, 7) = 1;
+    edge(7, 4) = 0; edge(7, 8) = 1;
+    edge(8, 4) = 0; edge(8, 8) = 1;
 end
